@@ -3,7 +3,7 @@ import codecs,re,thulac,json,sys,io,threading,math
 #sys.stdout = io.TextIOWrapper(sys.stdout.buffer,encoding='gb18030') 
 dict={}
 nthread = 5
-pagelen = int(5790/nthread)#5790
+pagelen = int(5838/nthread)#5790
 thu1 = thulac.thulac(seg_only = True)
 flag = '<div class="content">'
 wlock = threading.Lock()

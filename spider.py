@@ -15,8 +15,12 @@ wlock = threading.Lock()
 def geturl():
     global num,hrefWait,hrefDone,dlock,wlock
     if dlock.acquire() and wlock.acquire(): 
+        if hrefWait == []:
+            return -1,-1
         url = hrefWait.pop(0)
         while(url=='' or url in hrefDone):
+            if hrefWait == []:
+                return -1,-1
             url = hrefWait.pop(0)
         wlock.release()
         
@@ -81,36 +85,36 @@ def merge(tHref):
     
 def run():
     global docref
-    url,num = geturl()
-    docref[num] = url    
-    
-    print(url)
-    try:
-        html = s.get(url).text
-    except Exception as e:
-        print('Error:', e)
-        return
+    while len(hrefWait) != 0:
+        url,num = geturl()
+        if num == -1:
+            return
+        docref[num] = url    
         
-    with codecs.open('bak/%s.bak' % num, 'w','utf-8') as f:
-        f.write(html)
+        print(url)
+        try:
+            html = s.get(url).text
+        except Exception as e:
+            print('Error:', e)
+            return
+            
+        with codecs.open('bak/%s.bak' % num, 'w','utf-8') as f:
+            f.write(html)
 
-    tHref = re.findall(r'a href="(.*?)"',html) #list
-    tHref = list(set(tHref))
-    
-    tHref = filter(tHref)
-    merge(tHref)
+        tHref = re.findall(r'a href="(.*?)"',html) #list
+        tHref = list(set(tHref))
+        
+        tHref = filter(tHref)
+        merge(tHref)
 
 run()
 t=0
-while len(hrefWait) != 0:
-    tds=[]
-    t+=1
-    for i in range(5):
-        tds.append(threading.Thread(target=run))
-        tds[i].start()
-    for i in range(5):
-        tds[i].join()
-    print('time %s done' % t)
+tds=[]
+for i in range(5):
+    tds.append(threading.Thread(target=run))
+    tds[i].start()  
+for i in range(5):
+    tds[i].join()  
     
 with codecs.open('docref.log', 'w','utf-8') as f:
     f.write(str(docref))
