@@ -1,5 +1,5 @@
 /data.json
 /docref.log
 /node_modules
-/public
 !/public/index.html
+/public
