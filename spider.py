@@ -30,7 +30,7 @@ def geturl():
         dlock.release()
     return url,num
 
-def filter(tHref):
+def filter(tHref,domain):
     global rootDomain,hrefDone,lock
     tp = 0
     for index, turl in enumerate(tHref) :
@@ -39,9 +39,10 @@ def filter(tHref):
         if not turl[:7]=='http://' and not turl[:8]=='https://':
             if ':' in turl:
                 tHref[index] = ''
+                continue
             if turl[0]=='/':
                 tHref[index]=turl[1:]
-            tHref[index] = rootDomain[dp] + tHref[index]
+            tHref[index] = domain + tHref[index]
         if turl[-1]=='/':
             tHref[index] += 'index.php'
         
@@ -51,6 +52,9 @@ def filter(tHref):
         for index,turl in enumerate(tHref) :
             if turl=='':
                 continue
+            
+            if len(turl)>5 and turl[-5]=='.' and turl[-5:]!='.html' :
+                tHref[index] = ''
                 
             if len(turl)>4 and turl[-4]=='.' and turl[-4:]!='.htm' and turl[-4:]!='.php':
                 tHref[index] = ''
@@ -89,7 +93,6 @@ def run():
         url,num = geturl()
         if num == -1:
             return
-        docref[num] = url    
         
         print(url)
         try:
@@ -101,23 +104,24 @@ def run():
         with codecs.open('bak/%s.bak' % num, 'w','utf-8') as f:
             f.write(html)
 
+        docref[num] = url  
         tHref = re.findall(r'a href="(.*?)"',html) #list
         tHref = list(set(tHref))
         
-        tHref = filter(tHref)
+        tHref = filter(tHref,url[:url.rfind('/')+1])
         merge(tHref)
 
 run()
 t=0
 tds=[]
-for i in range(5):
+for i in range(10):
     tds.append(threading.Thread(target=run))
     tds[i].start()  
-for i in range(5):
-    tds[i].join()  
+for i in range(10):
+    tds[i].join()
     
 with codecs.open('docref.log', 'w','utf-8') as f:
-    f.write(str(docref))
+    json.dump(docref,f,ensure_ascii=False)
     
 
 #rucfd.ruc.edu.cn
