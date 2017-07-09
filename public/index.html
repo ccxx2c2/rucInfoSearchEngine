@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<head>
+	<meta charset="UTF-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="检索rucInfo的搜索引擎">
+    <link href="./bootstrap.css" rel="stylesheet">
+    <title>rucInfo查询</title>
+    <style type="text/css">
+        .input-group{
+            width:70%;
+        }
+        .list-group{
+            margin-bottom : 0px;
+        }
+    </style>
+</head>
+<body style="padding-top: 40px;">
+    <div class="container jumbotron" id="jumbotron">
+        <div class="row">
+            <div class='col-xs-12'>
+                <h1>rucinfo 搜索引擎</h1>
+                <p id="discription">高速、可靠的信息学院内容检索系统</p>
+                <div class='input-group'>
+                    <input type="text" class="form-control" id="query" placeholder="请在这里输入想要搜索的内容.." />
+                    <span class="input-group-btn">
+                        <button type="button" class="btn btn-default" id="button">
+                          <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                        </button>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+   
+    <div class="container" id="container">
+        <div class="list-group" id="res">
+            <p>目前支持的网站：</p>
+            <a href="http://info.ruc.edu.cn"><img src="/top_logo.png" /></a>
+            
+        </div>
+    </div>
+        <script src='./jquery.js'> </script>
+        <script src="./bootstrap.js"></script>
+        <script>
+            var ttt;
+            var pages;
+            var getpage = function(num){
+                if(num<1){
+                
+                    num=parseInt($("#goalpage").val());
+                    if (!(num>0)) return;
+                }
+                console.log(num);
+                $.ajax({
+                    url:'/reader',
+                    data:{
+                          page:num,
+                          type:"getpage"
+                         },
+                    dataType:'json',
+                    type:'post',
+                    success:function(data){
+                        console.log(data);
+                        changeStyle();
+                        if(data.length==0){
+                            $("#res").append('<p class="alert alert-warning" role="alert">没有找到结果！</p>');
+                            return;
+                        }
+                        
+                        for(var i=0;i<(10>data.length?data.length:10);i++){
+                            $("#res").append('<a href="'+data[i][0]+'" class="list-group-item" target="_blank">'+data[i][1]+' 参考值：'+data[i][5]+','+data[i][6]+'<br /><small>'+data[i][0]+'</small><br /><small>发布时间:'+data[i][3]+' 点击量：'+data[i][2]+'</small></a>');}
+                    if(pages>10){
+                        $("#container").append(`
+                <nav aria-label="Page navigation">
+                  <ul class="pagination" id="subnav">
+                    <li>
+                      <a href="#" aria-label="Previous" class="btn" onclick="getpage(`+(num-1)+`)">
+                        <span aria-hidden="true">&laquo;</span>
+                      </a>
+                    </li>
+                    <li><a class="btn" role="button" onclick="getpage(`+(num-1)+`)">`+(num-1)+`</a></li>
+                  </ul>
+                </nav>`);
+                        $("#subnav").append('<li><a class="btn disabled" role="button" >'+num+'</a></li>');
+                    for(var i=num+1;(i-1)*10<=pages && i<num+10;i++){
+                        $("#subnav").append('<li><a class="btn" role="button" onclick="getpage('+i+')">'+i+'</a></li>');
+                    }
+                    $("#subnav").append(`<li>
+                      <a class="btn" role="button" onclick="getpage(`+(num+1)+`)">
+                        <span aria-hidden="true">&raquo;</span>
+                      </a>
+                    </li>`);}
+                    if(pages>100){
+                    $("#container").append(`
+                        <div class="form-group form-inline" id="jump">
+                        <label>前往第</label>
+                        <input type="text" class="form-control" id="goalpage" placeholder="`+((pages-(pages-1)%10+9)/10)+`"></input><label>页</label>
+                        <button class="btn btn-primary" type="button" id="go" onclick="getpage(-1)">go</button>
+                        </div>
+                    `);
+            $("#goalpage").keyup(function(event){
+                if(event.keyCode == 13){
+                    $("#go").trigger("click");
+                }
+            });}
+                     },
+                    error:function(){
+                        changeStyle();
+                        $("#res").append('<p class="alert alert-danger" role="alert">服务器出现错误，请重试</p>');
+                        console.log("error!");
+                        return;
+                        
+                    }
+                });
+            };
+            var nowPage = 1;
+            $("#query").keyup(function(event){
+                if(event.keyCode == 13){
+                    $("#button").trigger("click");
+                }
+            });
+            var changeStyle = function(){
+                $("#jumbotron").removeClass("jumbotron");
+                $("body").removeAttr("style");
+                $("#discription").remove();
+                $("h1").addClass("page-header").attr("style","margin-top:10px");
+                $("#res").empty().append('<br>');
+                $("nav").remove();
+                $("#jump").remove();
+            }
+            $("#button").click(function(){
+                var d0 = new Date().getTime();
+                $.ajax({
+                    url:'/reader',
+                    data:{query:$("#query").val(),
+                          type:"query"},
+                    dataType:'json',
+                    type:'post',
+                    success:function(data){//data:[['docurl','doctitle','docclick','docdate','docid',cos,scalar]]
+                        pages = data[0];
+                        data = data[1];
+                        var d1 = new Date().getTime();
+                        changeStyle();
+                        
+                        console.log(data);
+                        if(data.length==0){
+                            $("#res").append('<p class="alert alert-warning" role="alert">没有找到结果！</p>');
+                            return;
+                        }
+                        $("#res").append('<p class="alert alert-success" role="alert">在 '+(d1-d0)+' 毫秒内共找到 '+pages+' 个页面相关。</p>');
+                        
+                        for(var i=0;i<(10>data.length?data.length:10);i++){
+                            $("#res").append('<a href="'+data[i][0]+'" class="list-group-item" target="_blank">'+data[i][1]+' 参考值：'+data[i][5]+','+data[i][6]+'<br /><small>'+data[i][0]+'</small><br /><small>发布时间:'+data[i][3]+' 点击量：'+data[i][2]+'</small></a>');
+                        }
+                    if(pages>10){
+                        $("#container").append(`
+                <nav aria-label="Page navigation">
+                  <ul class="pagination" id="subnav">
+                    <li>
+                      <a href="#" aria-label="Previous" class="btn disabled">
+                        <span aria-hidden="true">&laquo;</span>
+                      </a>
+                    </li>
+                    <li><a class="btn disabled" role="button">1</a></li>
+                  </ul>
+                </nav>`);
+                    for(var i=2;(i-1)*10<=pages && i<11;i++){
+                        $("#subnav").append('<li><a class="btn" role="button" onclick="getpage('+i+')">'+i+'</a></li>');
+                    }
+                    $("#subnav").append(`<li>
+                      <a class="btn" role="button" onclick="getpage(2)">
+                        <span aria-hidden="true">&raquo;</span>
+                      </a>
+                    </li>`);}
+                    if(pages>100){
+                    $("#container").append(`
+                        <div class="form-group form-inline" id="jump">
+                        <label>前往第</label>
+                        <input type="text" class="form-control" id="goalpage" placeholder="`+((pages-(pages-1)%10+9)/10)+`"></input><label>页</label>
+                        <button class="btn btn-primary" type="button" id="go" onclick="getpage(-1)">go</button>
+                        </div>
+                    `);
+            $("#goalpage").keyup(function(event){
+                if(event.keyCode == 13){
+                    $("#go").trigger("click");
+                }
+            });}
+                    },
+                    error:function(){
+                        changeStyle();
+                        $("#res").append('<p class="alert alert-danger" role="alert">服务器出现错误，请重试</p>');
+                        console.log("error!");
+                        return;
+                        
+                    }
+                });
+            });
+            
+        </script>
+</body>
+</html>

@@ -26,9 +26,12 @@ var child = exec('python query.py', function (err, stdout, stderr) {
   console.log(stdout);   // 直接查看输出
   console.log(stderr);   // 直接查看输出
 });        
+var qf=0;
 app.post('/reader',function(req,res){
+    if(req.body.type=="query"){
+      qf = 1;
       console.log(req.body.query);
-      child.stdin.write(req.body.query+'\n');//child.stdin.write(iconv.encode(req.body.query+'\n','utf-8'));   // 输入
+      child.stdin.write('qq'+req.body.query+'\n');
       child.stdout.once('data', function (s) {
             a=s.toString();
             console.log(a);//iconv.decode(a, 'gb2312')
@@ -38,10 +41,31 @@ app.post('/reader',function(req,res){
                 return;
             }
             var t=0;
-            while(a[t]!='[') t+=1;
-            a='['+a.substring(t,a.length-1)+']';
+            while(a[t]!='~') t+=1;
+            t+=1;
+            a='['+a.substring(t,a.length-1)+']]';
+            //console.log(JSON.parse(a));
             res.send(JSON.parse(a));
-      });
+        });
+    }
+    else if(req.body.type=="getpage" && qf == 1){
+      child.stdin.write('gp'+req.body.page+'\n');
+      child.stdout.once('data', function (s) {
+            a=s.toString();
+            console.log(a);
+            if(a[a.length-3]=="!"){
+                console.log(a);
+                res.send(JSON.parse("[]"));
+                return;
+            }
+            var t=0;
+        while(a[t]!='[') t+=1;
+        a='['+a.substring(t,a.length-1)+']';
+        //console.log(JSON.parse(a));
+        res.send(JSON.parse(a));
+        });
+    }
+    else res.send("error!");
 });
 
 /*req.query.name: http://127.0.0.1:3000/?name=1*/
